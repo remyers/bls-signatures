@@ -91,7 +91,7 @@ bls::Signature sig2 = sk2.Sign(msg, sizeof(msg));
 
 // Aggregate signatures together
 vector<bls::Signature> sigs = {sig1, sig2};
-bls::Signature aggSig = bls::Signature::Aggregate(sigs);
+bls::Signature aggSig = bls::Signature::AggregateSigs(sigs);
 
 // For same message, public keys can be aggregated into one.
 // The signature can be verified the same as a single signature,
@@ -117,11 +117,11 @@ bls::Signature sig3 = sk3.Sign(msg2, sizeof(msg2));
 // Aggregation below can also be done by the verifier, to
 // make batch verification more efficient
 vector<bls::Signature> sigsL = {sig1, sig2};
-bls::Signature aggSigL = bls::Signature::Aggregate(sigsL);
+bls::Signature aggSigL = bls::Signature::AggregateSigs(sigsL);
 
 // Arbitrary trees of aggregates
 vector<bls::Signature> sigsFinal = {aggSigL, sig3};
-bls::Signature aggSigFinal = bls::Signature::Aggregate(sigsFinal);
+bls::Signature aggSigFinal = bls::Signature::AggregateSigs(sigsFinal);
 
 // Serialize the final signature
 aggSigFinal.Serialize(sigBytes);
