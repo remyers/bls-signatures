@@ -55,7 +55,7 @@ class Util {
         }
     };
     typedef struct BytesCompare<32> BytesCompare32;
-    typedef struct BytesCompare<80> BytesCompare80;
+    typedef struct BytesCompare<128> BytesCompare128;
 
     static std::string HexStr(const uint8_t* data, size_t len) {
         std::stringstream s;

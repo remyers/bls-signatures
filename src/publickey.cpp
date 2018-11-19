@@ -31,23 +31,24 @@ PublicKey PublicKey::FromBytes(const uint8_t * key) {
     } else {
         uncompressed[0] = 0x02;   // Insert extra byte for Y=0
     }
-    g1_read_bin(pk.q, uncompressed, PUBLIC_KEY_SIZE + 1);
+    int _pkq = sizeof(pk.q);
+    g2_read_bin(pk.q, uncompressed, PUBLIC_KEY_SIZE + 1);
     BLS::CheckRelicErrors();
     return pk;
 }
 
-PublicKey PublicKey::FromG1(const g1_t* pubKey) {
+PublicKey PublicKey::FromG2(const g2_t* pubKey) {
     PublicKey pk = PublicKey();
-    g1_copy(pk.q, *pubKey);
+    g2_copy(pk.q, *(g2_t*)&pubKey);
     return pk;
 }
 
 PublicKey::PublicKey() {
-    g1_set_infty(q);
+    g2_set_infty(q);
 }
 
 PublicKey::PublicKey(const PublicKey &pubKey) {
-    g1_copy(q, pubKey.q);
+    g2_copy(q, *(g2_t*)&pubKey.q);
 }
 
 PublicKey PublicKey::AggregateInsecure(std::vector<PublicKey> const& pubKeys) {
@@ -57,7 +58,7 @@ PublicKey PublicKey::AggregateInsecure(std::vector<PublicKey> const& pubKeys) {
 
     PublicKey ret = pubKeys[0];
     for (size_t i = 1; i < pubKeys.size(); i++) {
-        g1_add(ret.q, ret.q, pubKeys[i].q);
+        g2_add(ret.q, ret.q, *(g2_t*)&pubKeys[i].q);
     }
     return ret;
 }
@@ -112,7 +113,7 @@ PublicKey PublicKey::Aggregate(std::vector<PublicKey> const& pubKeys) {
 
 PublicKey PublicKey::Exp(bn_t const n) const {
     PublicKey ret;
-    g1_mul(ret.q, q, n);
+    g2_mul(ret.q, ret.q, n);
     return ret;
 }
 
@@ -128,7 +129,7 @@ std::vector<uint8_t> PublicKey::Serialize() const {
 
 // Comparator implementation.
 bool operator==(PublicKey const &a,  PublicKey const &b) {
-    return g1_cmp(a.q, b.q) == CMP_EQ;
+    return g2_cmp(*(g2_t*)&a.q, *(g2_t*)&b.q) == CMP_EQ;
 }
 
 bool operator!=(PublicKey const&a,  PublicKey const&b) {
@@ -149,9 +150,10 @@ uint32_t PublicKey::GetFingerprint() const {
     return Util::FourBytesToInt(hash);
 }
 
-void PublicKey::CompressPoint(uint8_t* result, const g1_t* point) {
+void PublicKey::CompressPoint(uint8_t* result, const g2_t* point) {
     uint8_t buffer[PublicKey::PUBLIC_KEY_SIZE + 1];
-    g1_write_bin(buffer, PublicKey::PUBLIC_KEY_SIZE + 1, *point, 1);
+    g2_write_bin(buffer, PublicKey::PUBLIC_KEY_SIZE + 1, *const_cast<g2_t*>(point), 1);
+    BLS::CheckRelicErrors();
 
     if (buffer[0] == 0x03) {
         buffer[1] |= 0x80;

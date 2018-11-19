@@ -29,19 +29,19 @@
 namespace bls {
 /**
  * An insecure BLS signature.
- * A Signature is a group element of g2
+ * A Signature is a group element of g1
  * Aggregation of these signatures is not secure on it's own, use Signature instead
  */
 class InsecureSignature {
  friend class Signature;
  public:
-    static const size_t SIGNATURE_SIZE = 96;
+    static const size_t SIGNATURE_SIZE = 48;
 
     // Initializes from serialized byte array/
     static InsecureSignature FromBytes(const uint8_t *data);
 
-    // Initializes from native relic g2 element/
-    static InsecureSignature FromG2(const g2_t* element);
+    // Initializes from native relic g1 element/
+    static InsecureSignature FromG1(const g1_t* element);
 
     // Copy constructor. Deep copies contents.
     InsecureSignature(const InsecureSignature &signature);
@@ -72,25 +72,25 @@ class InsecureSignature {
     // Exponentiate signature with n
     InsecureSignature Exp(const bn_t n) const;
 
-    static void CompressPoint(uint8_t* result, const g2_t* point);
+    static void CompressPoint(uint8_t* result, const g1_t* point);
 
     // Performs multipairing and checks that everything matches. This is an
     // internal method, only called from Verify. It should not be used
     // anywhere else.
     static bool VerifyNative(
-            g1_t* pubKeys,
-            g2_t* mappedHashes,
+            g2_t* pubKeys,
+            g1_t* mappedHashes,
             size_t len);
 
  private:
     // Signature group element
-    g2_t sig;
+    g1_t sig;
 };
 
 /**
  * An encapsulated signature.
  * A Signature is composed of two things:
- *     1. 96 byte group element of g2
+ *     1. 48 byte group element of g1
  *     2. AggregationInfo object, which describes how the signature was
  *        generated, and how it should be verified.
  */
@@ -104,11 +104,11 @@ class Signature {
     // Initializes from bytes with AggregationInfo/
     static Signature FromBytes(const uint8_t *data, const AggregationInfo &info);
 
-    // Initializes from native relic g2 element/
-    static Signature FromG2(const g2_t* element);
+    // Initializes from native relic g1 element/
+    static Signature FromG1(const g1_t* element);
 
-    // Initializes from native relic g2 element with AggregationInfo/
-    static Signature FromG2(const g2_t* element, const AggregationInfo &info);
+    // Initializes from native relic g1 element with AggregationInfo/
+    static Signature FromG1(const g1_t* element, const AggregationInfo &info);
 
     // Initializes from insecure signature/
     static Signature FromInsecureSig(const InsecureSignature& sig);
@@ -145,7 +145,7 @@ class Signature {
     // be verified.
     void SetAggregationInfo(const AggregationInfo &newAggregationInfo);
 
-    // Serializes ONLY the 96 byte public key. It does not serialize
+    // Serializes ONLY the 48 byte signature. It does not serialize
     // the aggregation info.
     void Serialize(uint8_t* buffer) const;
     std::vector<uint8_t> Serialize() const;
@@ -161,7 +161,7 @@ class Signature {
     Signature() {}
 
     // Aggregates many signatures using the secure aggregation method.
-    // Performs ~ n * 256 g2 operations.
+    // Performs ~ n * 256 g1 operations.
     static Signature AggregateSigsSecure(
             std::vector<Signature> const &sigs,
             std::vector<PublicKey> const &pubKeys,
@@ -174,7 +174,7 @@ class Signature {
             std::vector<std::vector<uint8_t*> > const &messageHashes);
 
     // Efficiently aggregates many signatures using the simple aggregation
-    // method. Performs only n g2 operations.
+    // method. Performs only n g1 operations.
     static Signature AggregateSigsSimple(
             std::vector<Signature> const &sigs);
 

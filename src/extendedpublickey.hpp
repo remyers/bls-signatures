@@ -47,8 +47,8 @@ class ExtendedPublicKey {
  public:
     static const uint32_t VERSION = 1;
 
-    // version(4) depth(1) parent fingerprint(4) child#(4) cc(32) pk(48)
-    static const uint32_t EXTENDED_PUBLIC_KEY_SIZE = 93;
+    // version(4) depth(1) parent fingerprint(4) child#(4) cc(32) pk(96)
+    static const uint32_t EXTENDED_PUBLIC_KEY_SIZE = 141;
 
     // Parse public key and chain code from bytes
     static ExtendedPublicKey FromBytes(const uint8_t* serialized);

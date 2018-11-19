@@ -43,7 +43,7 @@ ExtendedPrivateKey ExtendedPrivateKey::FromSeed(const uint8_t* seed,
     bn_t* skBn = Util::SecAlloc<bn_t>(1);
     bn_t order;
     bn_new(order);
-    g1_get_ord(order);
+    g2_get_ord(order);
 
     bn_new(*skBn);
     bn_read_bin(*skBn, ILeft, PrivateKey::PRIVATE_KEY_SIZE);

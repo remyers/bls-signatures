@@ -32,23 +32,23 @@ InsecureSignature InsecureSignature::FromBytes(const uint8_t *data) {
     } else {
         uncompressed[0] = 0x02;   // Insert extra byte for Y=0
     }
-    g2_read_bin(sigObj.sig, uncompressed, SIGNATURE_SIZE + 1);
+    g1_read_bin(sigObj.sig, uncompressed, SIGNATURE_SIZE + 1);
     BLS::CheckRelicErrors();
     return sigObj;
 }
 
-InsecureSignature InsecureSignature::FromG2(const g2_t* element) {
+InsecureSignature InsecureSignature::FromG1(const g1_t* element) {
     InsecureSignature sigObj = InsecureSignature();
-    g2_copy(sigObj.sig, *(g2_t*)element);
+    g1_copy(sigObj.sig, *(g1_t*)element);
     return sigObj;
 }
 
 InsecureSignature::InsecureSignature() {
-    g2_set_infty(sig);
+    g1_set_infty(sig);
 }
 
 InsecureSignature::InsecureSignature(const InsecureSignature &signature) {
-    g2_copy(sig, *(g2_t*)&signature.sig);
+    g1_copy(sig, *(g1_t*)&signature.sig);
 }
 
 bool InsecureSignature::Verify(const std::vector<const uint8_t*>& hashes,
@@ -57,20 +57,20 @@ bool InsecureSignature::Verify(const std::vector<const uint8_t*>& hashes,
         throw std::string("hashes and pubKeys vectors must be of same size and non-empty");
     }
 
-    g1_t *pubKeysNative = new g1_t[hashes.size() + 1];
-    g2_t *mappedHashes = new g2_t[hashes.size() + 1];
+    g2_t *pubKeysNative = new g2_t[hashes.size() + 1];
+    g1_t *mappedHashes = new g1_t[hashes.size() + 1];
 
-    g2_copy(mappedHashes[0], *(g2_t*)&sig);
-    g1_get_gen(pubKeysNative[0]);
+    g1_copy(mappedHashes[0], *(g1_t*)&sig);
+    g2_get_gen(pubKeysNative[0]);
     bn_t ordMinus1;
     bn_new(ordMinus1);
-    g1_get_ord(ordMinus1);
+    g2_get_ord(ordMinus1);
     bn_sub_dig(ordMinus1, ordMinus1, 1);
-    g1_mul(pubKeysNative[0], pubKeysNative[0], ordMinus1);
+    g2_mul(pubKeysNative[0], pubKeysNative[0], ordMinus1);
 
     for (size_t i = 0; i < hashes.size(); i++) {
-        g2_map(mappedHashes[i + 1], hashes[i], BLS::MESSAGE_HASH_LEN, 0);
-        g1_copy(pubKeysNative[i + 1], pubKeys[i].q);
+        g1_map(mappedHashes[i + 1], hashes[i], BLS::MESSAGE_HASH_LEN);
+        g2_copy(pubKeysNative[i + 1], *(g2_t*)&pubKeys[i].q);
     }
 
     bool result = VerifyNative(pubKeysNative, mappedHashes, hashes.size() + 1);
@@ -82,8 +82,8 @@ bool InsecureSignature::Verify(const std::vector<const uint8_t*>& hashes,
 }
 
 bool InsecureSignature::VerifyNative(
-        g1_t* pubKeys,
-        g2_t* mappedHashes,
+        g2_t* pubKeys,
+        g1_t* mappedHashes,
         size_t len) {
     gt_t target, candidate;
 
@@ -93,7 +93,7 @@ bool InsecureSignature::VerifyNative(
 
     // prod e(pubkey[i], hash[i]) * e(-1 * g1, aggSig)
     // Performs pubKeys.size() pairings
-    pc_map_sim(candidate, pubKeys, mappedHashes, len);
+    pc_map_sim(candidate, mappedHashes, pubKeys, len);
 
     // 1 =? prod e(pubkey[i], hash[i]) * e(g1, aggSig)
     if (gt_cmp(target, candidate) != CMP_EQ ||
@@ -111,7 +111,7 @@ InsecureSignature InsecureSignature::Aggregate(const std::vector<InsecureSignatu
     }
     InsecureSignature result = sigs[0];
     for (size_t i = 1; i < sigs.size(); i++) {
-        g2_add(result.sig, result.sig, *(g2_t*)&sigs[i].sig);
+        g1_add(result.sig, result.sig, *(g1_t*)&sigs[i].sig);
     }
     return result;
 }
@@ -123,13 +123,13 @@ InsecureSignature InsecureSignature::DivideBy(const std::vector<InsecureSignatur
 
     InsecureSignature tmpAgg = Aggregate(sigs);
     InsecureSignature result(*this);
-    g2_sub(result.sig, result.sig, tmpAgg.sig);
+    g1_sub(result.sig, result.sig, tmpAgg.sig);
     return result;
 }
 
 InsecureSignature InsecureSignature::Exp(const bn_t n) const {
     InsecureSignature result(*this);
-    g2_mul(result.sig, result.sig, n);
+    g1_mul(result.sig, result.sig, n);
     return result;
 }
 
@@ -144,7 +144,7 @@ std::vector<uint8_t> InsecureSignature::Serialize() const {
 }
 
 bool operator==(InsecureSignature const &a, InsecureSignature const &b) {
-    return g2_cmp(*(g2_t*)&a.sig, *(g2_t*)b.sig) == CMP_EQ;
+    return g1_cmp(a.sig, b.sig) == CMP_EQ;
 }
 
 bool operator!=(InsecureSignature const &a, InsecureSignature const &b) {
@@ -158,13 +158,13 @@ std::ostream &operator<<(std::ostream &os, InsecureSignature const &s) {
 }
 
 InsecureSignature& InsecureSignature::operator=(const InsecureSignature &rhs) {
-    g2_copy(sig, *(g2_t*)&rhs.sig);
+    g1_copy(sig, rhs.sig);
     return *this;
 }
 
-void InsecureSignature::CompressPoint(uint8_t* result, const g2_t* point) {
+void InsecureSignature::CompressPoint(uint8_t* result, const g1_t* point) {
     uint8_t buffer[InsecureSignature::SIGNATURE_SIZE + 1];
-    g2_write_bin(buffer, InsecureSignature::SIGNATURE_SIZE + 1, *(g2_t*)point, 1);
+    g1_write_bin(buffer, InsecureSignature::SIGNATURE_SIZE + 1, *(g1_t*)point, 1);
 
     if (buffer[0] == 0x03) {
         buffer[1] |= 0x80;
@@ -186,24 +186,24 @@ Signature Signature::FromBytes(const uint8_t *data, const AggregationInfo &info)
     return ret;
 }
 
-Signature Signature::FromG2(const g2_t* element) {
+Signature Signature::FromG1(const g1_t* element) {
     Signature result;
-    result.sig = InsecureSignature::FromG2(element);
+    result.sig = InsecureSignature::FromG1(element);
     return result;
 }
 
-Signature Signature::FromG2(const g2_t* element, const AggregationInfo& info) {
-    Signature ret = FromG2(element);
+Signature Signature::FromG1(const g1_t* element, const AggregationInfo& info) {
+    Signature ret = FromG1(element);
     ret.SetAggregationInfo(info);
     return ret;
 }
 
 Signature Signature::FromInsecureSig(const InsecureSignature& sig) {
-    return FromG2(&sig.sig);
+    return FromG1(&sig.sig);
 }
 
 Signature Signature::FromInsecureSig(const InsecureSignature& sig, const AggregationInfo& info) {
-    return FromG2(&sig.sig, info);
+    return FromG1(&sig.sig, info);
 }
 
 Signature::Signature(const Signature &_signature)
@@ -608,7 +608,7 @@ Signature Signature::AggregateSigsSimple(std::vector<Signature> const &sigs) {
 
 Signature Signature::DivideBy(std::vector<Signature> const &divisorSigs) const {
     bn_t ord;
-    g2_get_ord(ord);
+    g1_get_ord(ord);
 
     std::vector<uint8_t*> messageHashesToRemove;
     std::vector<PublicKey> pubKeysToRemove;

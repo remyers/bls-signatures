@@ -1,4 +1,4 @@
-// Copyright 2018 Chia Network Inc
+    // Copyright 2018 Chia Network Inc
 
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -234,7 +234,8 @@ bool operator!=(AggregationInfo const&a, AggregationInfo const&b) {
 
 std::ostream &operator<<(std::ostream &os, AggregationInfo const &a) {
     for (auto &kv : a.tree) {
-        os << Util::HexStr(kv.first, 80) << ".." << ":" << std::endl;
+        os << Util::HexStr(kv.first, BLS::MESSAGE_HASH_LEN
+                + PublicKey::PUBLIC_KEY_SIZE) << ".." << ":" << std::endl;
         uint8_t str[RELIC_BN_BYTES * 3 + 1];
         bn_write_bin(str, sizeof(str), *kv.second);
         os << Util::HexStr(str + RELIC_BN_BYTES * 3 + 1 - 5, 5)
@@ -261,8 +262,9 @@ void AggregationInfo::InsertIntoTree(AggregationInfo::AggregationTree &tree,
         bn_new(*exponent);
         bn_copy(*exponent, *mapEntry.second);
         bn_t ord;
-        g1_get_ord(ord);
+        g2_get_ord(ord);
         bn_mod(*exponent, *exponent, ord);
+        BLS::CheckRelicErrors();
         tree.insert(std::make_pair(messageCopy, exponent));
     }
 }
@@ -277,7 +279,7 @@ void AggregationInfo::SortIntoVectors(std::vector<uint8_t*> &ms,
         ms.push_back(kv.first);
     }
     sort(begin(ms), end(ms),
-         Util::BytesCompare80());
+         Util::BytesCompare128());
     for (auto &m : ms) {
         pks.push_back(PublicKey::FromBytes(m + BLS::MESSAGE_HASH_LEN));
     }
@@ -345,7 +347,7 @@ AggregationInfo AggregationInfo::SecureMergeInfos(
     BLS::HashPubKeys(computedTs, sortedCollidingInfos.size(), serPks, sortedKeys);
 
     bn_t ord;
-    g1_get_ord(ord);
+    g2_get_ord(ord);
 
     // Merge the trees, multiplying by the Ts, and then adding
     // to total

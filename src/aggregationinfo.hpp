@@ -78,9 +78,9 @@ class AggregationInfo {
 
  private:
     // This is the data structure that maps messages (32) and
-    // public keys (48) to exponents (bn_t*).
+    // public keys (96) to exponents (bn_t*).
     typedef std::map<uint8_t*, bn_t*,
-                     Util::BytesCompare80> AggregationTree;
+                     Util::BytesCompare128> AggregationTree;
 
     explicit AggregationInfo(const AggregationTree& tr,
                              std::vector<uint8_t*> ms,

@@ -33,13 +33,13 @@ class PublicKey {
  friend class ExtendedPublicKey;
  friend class BLS;
  public:
-    static const size_t PUBLIC_KEY_SIZE = 48;
+    static const size_t PUBLIC_KEY_SIZE = 96;
 
     // Construct a public key from a byte vector.
     static PublicKey FromBytes(const uint8_t* key);
 
-    // Construct a public key from a native g1 element.
-    static PublicKey FromG1(const g1_t* key);
+    // Construct a public key from a native g2 element.
+    static PublicKey FromG2(const g2_t* key);
 
     // Construct a public key from another public key.
     PublicKey(const PublicKey &pubKey);
@@ -68,11 +68,11 @@ class PublicKey {
     // Exponentiate public key with n
     PublicKey Exp(const bn_t n) const;
 
-    static void CompressPoint(uint8_t* result, const g1_t* point);
+    static void CompressPoint(uint8_t* result, const g2_t* point);
 
  private:
     // Public key group element
-    g1_t q;
+    g2_t q;
 };
 
 } // end namespace bls

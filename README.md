@@ -218,7 +218,7 @@ cmake --build . -- -j 6
 ### Link the library to use it
 ```bash
 g++ -Wl,-no_pie  -Ibls-signatures/contrib/relic/include -Ibls-signatures/build/contrib/relic/incl
-ude -Ibls-signatures/src/  -L./bls-signatures/build/ -l bls  yourfile.cpp
+ude -Ibls-signatures/src/  -L./bls-signatures/build/ -l bls -std=c++0x yourfile.cpp
 ```
 
 ### Notes on dependencies

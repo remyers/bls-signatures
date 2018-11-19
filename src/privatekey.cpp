@@ -33,7 +33,7 @@ PrivateKey PrivateKey::FromSeed(const uint8_t* seed, size_t seedLen) {
 
     bn_t order;
     bn_new(order);
-    g1_get_ord(order);
+    g2_get_ord(order);
 
     // Make sure private key is less than the curve order
     bn_t* skBn = Util::SecAlloc<bn_t>(1);
@@ -57,7 +57,7 @@ PrivateKey PrivateKey::FromBytes(const uint8_t* bytes, bool modOrder) {
     bn_read_bin(*k.keydata, bytes, PrivateKey::PRIVATE_KEY_SIZE);
     bn_t ord;
     bn_new(ord);
-    g1_get_ord(ord);
+    g2_get_ord(ord);
     if (modOrder) {
         bn_mod_basic(*k.keydata, *k.keydata, ord);
     } else {
@@ -83,10 +83,10 @@ PrivateKey::~PrivateKey() {
 }
 
 PublicKey PrivateKey::GetPublicKey() const {
-    g1_t *q = Util::SecAlloc<g1_t>(1);
-    g1_mul_gen(*q, *keydata);
+    g2_t *q = Util::SecAlloc<g2_t>(1);
+    g2_mul_gen(*q, *keydata);
 
-    const PublicKey ret = PublicKey::FromG1(q);
+    const PublicKey ret = PublicKey::FromG2(q);
     Util::SecFree(*q);
     return ret;
 }
@@ -98,7 +98,7 @@ PrivateKey PrivateKey::AggregateInsecure(std::vector<PrivateKey> const& privateK
 
     bn_t order;
     bn_new(order);
-    g1_get_ord(order);
+    g2_get_ord(order);
 
     PrivateKey ret(privateKeys[0]);
     for (size_t i = 1; i < privateKeys.size(); i++) {
@@ -164,7 +164,7 @@ PrivateKey PrivateKey::Aggregate(std::vector<PrivateKey> const& privateKeys,
 PrivateKey PrivateKey::Mul(const bn_t n) const {
     bn_t order;
     bn_new(order);
-    g2_get_ord(order);
+    g1_get_ord(order);
 
     PrivateKey ret;
     ret.AllocateKeyData();
@@ -205,12 +205,12 @@ InsecureSignature PrivateKey::SignInsecure(const uint8_t *msg, size_t len) const
 }
 
 InsecureSignature PrivateKey::SignInsecurePrehashed(const uint8_t *messageHash) const {
-    g2_t sig, point;
+    g1_t sig, point;
 
-    g2_map(point, messageHash, BLS::MESSAGE_HASH_LEN, 0);
-    g2_mul(sig, point, *keydata);
+    g1_map(point, messageHash, BLS::MESSAGE_HASH_LEN);
+    g1_mul(sig, point, *keydata);
 
-    return InsecureSignature::FromG2(&sig);
+    return InsecureSignature::FromG1(&sig);
 }
 
 Signature PrivateKey::Sign(const uint8_t *msg, size_t len) const {
